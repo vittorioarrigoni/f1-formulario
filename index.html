@@ -651,6 +651,11 @@ const SHEETS = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIr
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
+function sendWhatsApp() {
+  const text = document.getElementById('wa-text').textContent;
+  const encoded = encodeURIComponent(text);
+  window.open('https://wa.me/?text=' + encoded, '_blank');
+}  
 // ══ ADMIN ══
 function adminAccess() {
   const clave = prompt('Ingresa la clave de administrador:');
