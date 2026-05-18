@@ -629,14 +629,25 @@ async function enviarApuesta() {
       setTimeout(() => { if (window[cbName]) { delete window[cbName]; try { document.getElementById('jsonp-reg').remove(); } catch(e) {} resolveReg(null); } }, 10000);
       const script = document.createElement('script');
       script.id = 'jsonp-reg';
-      const SHEETS = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIrKGMzD
-
-function sendWhatsApp() {
-  const text = document.getElementById('wa-text').textContent;
-  const encoded = encodeURIComponent(text);
-  window.open('https://wa.me/?text=' + encoded, '_blank');
+const SHEETS = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIrKGMzDBtp9p0Pu8B0bF-Yw-7kZSgS6j5g4YTdoGdRHcY/exec';
+      script.src = SHEETS +
+        '?action=registrar' +
+        '&ts=' + encodeURIComponent(ts) +
+        '&carrera=' + encodeURIComponent(window._betData.carrera) +
+        '&participante=' + encodeURIComponent(window._betData.participante) +
+        '&pilotos=' + encodeURIComponent(JSON.stringify(window._betData.pilotos)) +
+        '&equipos=' + encodeURIComponent(JSON.stringify(window._betData.equipos)) +
+        '&callback=' + cbName;
+      document.head.appendChild(script);
+    }).then(resp => {
+      localStorage.setItem(betKey, ts);
+      btn.textContent = '✅ ¡Apuesta enviada!';
+      btn.style.background = '#1db954';
+      status.innerHTML = '<strong style="color:#1db954">✓ Tu apuesta fue registrada correctamente.</strong>';
+    });
+  });
 }
-
+      
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
