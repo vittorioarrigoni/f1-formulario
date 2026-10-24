@@ -601,6 +601,15 @@ async function enviarApuesta() {
     return;
   }
 
+  // Re-verificar plazo al momento de enviar (la página pudo quedar abierta)
+  const stNow = getRaceStatus(selectedRace);
+  if (stNow === 'closed' || stNow === 'soon' || stNow === 'cancelled') {
+    btn.disabled = true;
+    btn.textContent = '🔒 Apuestas cerradas';
+    status.innerHTML = '<span style="color:#e10600">⚠️ Las apuestas para el ' + selectedRace.name + ' se cerraron al iniciar la Clasificación. Tu apuesta no fue enviada.</span>';
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = '⏳ Verificando...';
   status.innerHTML = '';
@@ -621,7 +630,7 @@ async function enviarApuesta() {
   }).then(async (result) => {
     if (result === 'blocked') return;
     btn.textContent = '⏳ Enviando...';
-    const ts = window._betData.timestamp || new Date().toISOString();
+    const ts = new Date().toISOString(); // hora real de envío
     await new Promise(resolveReg => {
       const cbName = 'f1reg_' + Date.now();
       window[cbName] = function(data) {
@@ -643,6 +652,15 @@ async function enviarApuesta() {
         '&callback=' + cbName;
       document.head.appendChild(script);
     }).then(resp => {
+      if (!resp || resp.error || resp.ok === false || resp.success === false) {
+        btn.disabled = false;
+        btn.textContent = '🔁 REINTENTAR ENVÍO';
+        btn.style.background = '';
+        status.innerHTML = '<strong style="color:#e10600">✗ No se pudo confirmar el registro de tu apuesta' +
+          (resp && resp.error ? ' (' + resp.error + ')' : ' (sin respuesta del servidor)') +
+          '. Revisa tu conexión y vuelve a intentar. Si el problema sigue, envía el texto por WhatsApp al administrador.</strong>';
+        return;
+      }
       localStorage.setItem(betKey, ts);
       btn.textContent = '✅ ¡Apuesta enviada!';
       btn.style.background = '#1db954';
