@@ -319,8 +319,8 @@ const RACES = [
     deadlineFri:"2026-03-13T21:00:00-03:00", p3:"2026-03-13T06:30:00Z", qualiStart:"2026-03-13T10:00:00Z", raceDate:"2026-03-15", openDate:"2026-03-09" },
   { id:"r03", num:3,  sprint:false, name:"GP Japón",             flag:"🇯🇵", date:"29 Mar",
     deadlineFri:"2026-03-27T21:00:00-03:00", p3:"2026-03-28T04:30:00Z", qualiStart:"2026-03-28T08:00:00Z", raceDate:"2026-03-29", openDate:"2026-03-23" },
-  { id:"r04", num:4,  sprint:false, name:"GP Bahréin",           flag:"🇧🇭", date:"04 Oct",
-    deadlineFri:"2026-10-02T21:00:00-04:00", p3:"2026-10-03T12:30:00Z", qualiStart:"2026-10-03T16:00:00Z", raceDate:"2026-10-04", openDate:"2026-09-28" },  
+  { id:"r04", num:4,  sprint:false, name:"GP Bahréin",           flag:"🇧🇭", date:"12 Abr",
+    deadlineFri:"2026-04-10T21:00:00-03:00", p3:"2026-04-11T12:30:00Z", qualiStart:"2026-04-11T16:00:00Z", raceDate:"2026-04-12", openDate:"2026-04-06", cancelled:true },
   { id:"r05", num:5,  sprint:false, name:"GP Arabia Saudita",    flag:"🇸🇦", date:"19 Abr",
     deadlineFri:"2026-04-17T21:00:00-03:00", p3:"2026-04-18T13:30:00Z", qualiStart:"2026-04-18T17:00:00Z", raceDate:"2026-04-19", openDate:"2026-04-13", cancelled:true },
   { id:"r06", num:6,  sprint:true,  name:"GP Miami",             flag:"🇺🇸", date:"03 May",
@@ -352,15 +352,15 @@ const RACES = [
   { id:"r19", num:19, sprint:false, name:"GP Estados Unidos",    flag:"🇺🇸", date:"25 Oct",
     deadlineFri:"2026-10-23T21:00:00-03:00", p3:"2026-10-24T17:30:00Z", qualiStart:"2026-10-24T21:00:00Z", raceDate:"2026-10-25", openDate:"2026-10-19" },
   { id:"r20", num:20, sprint:false, name:"GP México",            flag:"🇲🇽", date:"01 Nov",
-    deadlineFri:"2026-10-30T21:00:00-03:00", p3:"2026-10-31T18:30:00Z", qualiStart:"2026-10-31T22:00:00Z", raceDate:"2026-11-01", openDate:"2026-10-26" },
+    deadlineFri:"2026-10-30T21:00:00-03:00", p3:"2026-10-31T18:30:00Z", qualiStart:"2026-10-31T21:00:00Z", raceDate:"2026-11-01", openDate:"2026-10-26" },
   { id:"r21", num:21, sprint:false, name:"GP Brasil",            flag:"🇧🇷", date:"08 Nov",
     deadlineFri:"2026-11-06T21:00:00-03:00", p3:"2026-11-07T14:30:00Z", qualiStart:"2026-11-07T18:00:00Z", raceDate:"2026-11-08", openDate:"2026-11-02" },
   { id:"r22", num:22, sprint:false, name:"GP Las Vegas",         flag:"🇺🇸", date:"21 Nov",
-    deadlineFri:"2026-11-20T21:00:00-03:00", p3:"2026-11-20T02:30:00Z", qualiStart:"2026-11-20T06:00:00Z", raceDate:"2026-11-21", openDate:"2026-11-15" },
+    deadlineFri:"2026-11-20T21:00:00-03:00", p3:"2026-11-21T00:30:00Z", qualiStart:"2026-11-21T04:00:00Z", raceDate:"2026-11-21", openDate:"2026-11-15" },
   { id:"r23", num:23, sprint:false, name:"GP Qatar",             flag:"🇶🇦", date:"29 Nov",
-    deadlineFri:"2026-11-27T21:00:00-03:00", p3:"2026-11-28T13:30:00Z", qualiStart:"2026-11-28T17:00:00Z", raceDate:"2026-11-29", openDate:"2026-11-23" },
+    deadlineFri:"2026-11-27T21:00:00-03:00", p3:"2026-11-28T13:30:00Z", qualiStart:"2026-11-28T18:00:00Z", raceDate:"2026-11-29", openDate:"2026-11-23" },
   { id:"r24", num:24, sprint:false, name:"GP Abu Dhabi",         flag:"🇦🇪", date:"06 Dic",
-    deadlineFri:"2026-12-04T21:00:00-03:00", p3:"2026-12-05T11:30:00Z", qualiStart:"2026-12-05T15:00:00Z", raceDate:"2026-12-06", openDate:"2026-11-30" },
+    deadlineFri:"2026-12-04T21:00:00-03:00", p3:"2026-12-05T11:30:00Z", qualiStart:"2026-12-05T14:00:00Z", raceDate:"2026-12-06", openDate:"2026-11-30" },
 ];
 
 // ══════════════════════════════════════════════
@@ -387,7 +387,7 @@ function getRaceStatus(race) {
   const open  = new Date((race.openDate  || '2000-01-01') + 'T00:00:00-03:00');
   const fri   = new Date(race.deadlineFri);
   const p3    = new Date(race.p3);
-  const close = new Date((race.raceDate  || '2099-12-31') + 'T23:59:59-03:00');
+  const close = race.qualiStart ? new Date(race.qualiStart) : new Date((race.raceDate || '2099-12-31') + 'T23:59:59-03:00');
   if (now < open)  return 'soon';
   if (now < fri)   return 'open';
   if (now < p3)    return 'p1';
@@ -400,7 +400,7 @@ function penaltyInfo(status) {
   if (status === 'soon')      return { cls:'closed', icon:'⏳', txt:'Apuestas abren el lunes de la semana de carrera' };
   if (status === 'open')      return { cls:'ok',     icon:'✅', txt:'Apuestas abiertas · Sin penalización' };
   if (status === 'p1')        return { cls:'p1',     icon:'⚠️', txt:'Período de gracia · <strong>−1 punto de penalización</strong>' };
-  if (status === 'p2')        return { cls:'p2',     icon:'🚨', txt:'Período tardío · <strong>−2 puntos de penalización</strong>' };
+  if (status === 'p2')        return { cls:'p2',     icon:'🚨', txt:'Período tardío · <strong>−2 puntos de penalización</strong> · cierra al iniciar la Clasificación' };
   return                             { cls:'closed', icon:'🔒', txt:'Las apuestas para esta carrera están cerradas' };
 }
 
@@ -586,16 +586,18 @@ function jsonpCheck(participante, raceId, raceNum, callback) {
     }
   }, 6000);
 }
+
 async function enviarApuesta() {
   const btn = document.getElementById('btn-enviar');
   const status = document.getElementById('envio-status');
   if (!window._betData) return;
 
+  // 1. Verificar localStorage primero (instantáneo)
   const betKey = 'f1bet_' + selectedUser.replace(/\s+/g,'_') + '_' + selectedRace.id;
   if (localStorage.getItem(betKey)) {
     btn.disabled = true;
-    btn.textContent = '🔒 Ya apostaste';
-    status.innerHTML = '<span style="color:#e10600">⚠️ ' + selectedUser + ' ya tiene una apuesta registrada para el ' + selectedRace.name + '. Solo se puede apostar una vez por carrera.</span>';
+    btn.textContent = '\uD83D\uDD12 Ya apostaste';
+    status.innerHTML = '<span style="color:#e10600">\u26A0\uFE0F ' + selectedUser + ' ya tiene una apuesta registrada para el ' + selectedRace.name + '. Solo se puede apostar una vez por carrera.</span>';
     return;
   }
 
@@ -603,6 +605,7 @@ async function enviarApuesta() {
   btn.textContent = '⏳ Verificando...';
   status.innerHTML = '';
 
+  // 2. Verificar en Sheets como respaldo (JSONP)
   await new Promise(resolve => {
     jsonpCheck(selectedUser, selectedRace.id, selectedRace.num, (data) => {
       if (data && data.yaAposto) {
@@ -629,7 +632,7 @@ async function enviarApuesta() {
       setTimeout(() => { if (window[cbName]) { delete window[cbName]; try { document.getElementById('jsonp-reg').remove(); } catch(e) {} resolveReg(null); } }, 10000);
       const script = document.createElement('script');
       script.id = 'jsonp-reg';
-const SHEETS = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIrKGMzDBtp9p0Pu8B0bF-Yw-7kZSgS6j5g4YTdoGdRHcY/exec';
+      const SHEETS = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIrKGMzDBtp9p0Pu8B0bF-Yw-7kZSgS6j5g4YTdoGdRHcY/exec';
       script.src = SHEETS +
         '?action=registrar' +
         '&ts=' + encodeURIComponent(ts) +
@@ -647,15 +650,16 @@ const SHEETS = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIr
     });
   });
 }
-      
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
+
 function sendWhatsApp() {
   const text = document.getElementById('wa-text').textContent;
   const encoded = encodeURIComponent(text);
   window.open('https://wa.me/?text=' + encoded, '_blank');
-}  
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
 // ══ ADMIN ══
 function adminAccess() {
   const clave = prompt('Ingresa la clave de administrador:');
