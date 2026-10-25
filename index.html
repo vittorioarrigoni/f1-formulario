@@ -5,6 +5,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>F1 Ferrari Club Chile 2026</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="F1 FCC">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -199,6 +207,10 @@
 <div class="screen active" id="s-name">
   <div class="steps"><div class="step active"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
   <button class="btn-results" onclick="openResults()">🏆 RANKING Y RESULTADOS</button>
+  <div id="install-box" style="display:none;margin:-8px 0 18px">
+    <button onclick="installApp()" style="width:100%;padding:10px;background:transparent;border:1px dashed #444;color:#bbb;border-radius:8px;font-size:13px;cursor:pointer">📲 Agregar esta app a la pantalla de inicio</button>
+    <div id="install-help" class="note" style="display:none;margin-top:8px"></div>
+  </div>
   <div class="section-title">¿Quién eres?</div>
   <div class="name-grid" id="name-grid"></div>
 <div style="margin-top:24px;text-align:center">
@@ -617,6 +629,30 @@ const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_X
 // ══════════════════════════════════════════════
 let PUB = null;
 
+// ── Instalar en la pantalla de inicio ──
+let deferredInstall = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });
+window.addEventListener('appinstalled', () => { const b = document.getElementById('install-box'); if (b) b.style.display = 'none'; });
+function initInstallBox() {
+  const box = document.getElementById('install-box');
+  if (box && !isStandalone() && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) box.style.display = '';
+}
+async function installApp() {
+  const help = document.getElementById('install-help');
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    try { await deferredInstall.userChoice; } catch(e) {}
+    deferredInstall = null;
+    return;
+  }
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  help.innerHTML = ios
+    ? '<strong>En iPhone (Safari):</strong><br>1. Toca el botón <strong>Compartir</strong> (cuadrado con flecha ↑) abajo en la pantalla.<br>2. Elige <strong>Agregar a inicio</strong>.<br>3. Toca <strong>Agregar</strong>.<br><span style="color:#888">Si estás en Chrome o WhatsApp, abre primero la página en Safari.</span>'
+    : '<strong>En Android (Chrome):</strong><br>1. Toca el menú <strong>⋮</strong> arriba a la derecha.<br>2. Elige <strong>Agregar a la pantalla principal</strong> o <strong>Instalar app</strong>.<br>3. Confirma con <strong>Agregar / Instalar</strong>.';
+  help.style.display = help.style.display === 'none' ? '' : 'none';
+}
+
 function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function loadPublished(cb) {
@@ -876,6 +912,7 @@ function adminClearBet() {
 }
 
 renderNames();
+initInstallBox();
 </script>
 </body>
 </html>
