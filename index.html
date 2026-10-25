@@ -155,6 +155,36 @@
 
   .info-box { background: var(--card); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 16px; border: 1px solid var(--border); }
   .info-box strong { color: var(--text); }
+
+  /* ══ RESULTADOS EN LÍNEA ══ */
+  .btn-results { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; margin-bottom:18px;
+    background: linear-gradient(90deg, #2a0000, #1c1c1c); border:1.5px solid var(--red); color:#fff; border-radius:10px;
+    font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; letter-spacing:1px; cursor:pointer; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .tab { flex:1; padding:10px; background:var(--card); border:1px solid var(--border); color:var(--muted); border-radius:8px;
+    font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:1px; cursor:pointer; }
+  .tab.active { background:var(--red); border-color:var(--red); color:#fff; }
+  .upd { font-size:11px; color:var(--muted); text-align:center; margin-bottom:12px; }
+  .rk-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--card); border:1px solid var(--border);
+    border-radius:8px; margin-bottom:6px; }
+  .rk-pos { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:16px; background:#2a2a2a; flex-shrink:0; }
+  .rk-pos.p1 { background:var(--gold); color:#000; } .rk-pos.p2 { background:#c0c0c0; color:#000; } .rk-pos.p3 { background:#cd7f32; color:#000; }
+  .rk-name { flex:1; font-weight:500; font-size:15px; }
+  .rk-last { font-size:11px; color:var(--muted); }
+  .rk-total { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:22px; color:var(--gold); min-width:44px; text-align:right; }
+  .rc-select { width:100%; padding:12px; background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:8px; font-size:15px; margin-bottom:14px; }
+  .off-box { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .off-box .result-card div.l { font-size:13px; padding:3px 0; }
+  .bet-row { background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; overflow:hidden; }
+  .bet-head { display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; }
+  .bet-head .nm { flex:1; font-weight:500; }
+  .bet-head .pn { font-size:11px; color:var(--orange); }
+  .bet-head .pt { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:20px; color:var(--gold); min-width:40px; text-align:right; }
+  .bet-body { display:none; grid-template-columns:1fr 1fr; gap:10px; padding:0 12px 12px; font-size:13px; }
+  .bet-row.open .bet-body { display:grid; }
+  .hit { color:var(--green); font-weight:700; }
+  .note { padding:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:13px; color:#bbb; margin-bottom:12px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -168,6 +198,7 @@
 <!-- ══ PANTALLA 1: ELEGIR NOMBRE ══ -->
 <div class="screen active" id="s-name">
   <div class="steps"><div class="step active"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
+  <button class="btn-results" onclick="openResults()">🏆 RANKING Y RESULTADOS</button>
   <div class="section-title">¿Quién eres?</div>
   <div class="name-grid" id="name-grid"></div>
 <div style="margin-top:24px;text-align:center">
@@ -235,6 +266,21 @@
     2. Espera la confirmación en pantalla<br>
     3. ¡Listo! Tu apuesta queda registrada automáticamente
   </div>
+</div>
+
+<!-- ══ RANKING Y RESULTADOS ══ -->
+<div class="screen" id="s-tabla">
+  <div class="tabs">
+    <button class="tab active" id="tab-rk" onclick="showTab('rk')">🏆 RANKING</button>
+    <button class="tab" id="tab-rc" onclick="showTab('rc')">🏁 CARRERAS</button>
+  </div>
+  <div class="upd" id="pub-upd"></div>
+  <div id="pane-rk"></div>
+  <div id="pane-rc" style="display:none">
+    <select class="rc-select" id="rc-select" onchange="renderRace()"></select>
+    <div id="rc-body"></div>
+  </div>
+  <button class="btn btn-outline" style="margin-top:16px" onclick="goTo('s-name')">← Volver</button>
 </div>
 
 <!-- ══ PANTALLA ADMIN ══ -->
@@ -565,6 +611,116 @@ function showResult(drivers, teams) {
 // COPY
 // ══════════════════════════════════════════════
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxnyHks7ROWqNYDpWD_XvtIrKGMzDBtp9p0Pu8B0bF-Yw-7kZSgS6j5g4YTdoGdRHcY/exec';
+
+// ══════════════════════════════════════════════
+// RANKING Y RESULTADOS EN LÍNEA
+// ══════════════════════════════════════════════
+let PUB = null;
+
+function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function loadPublished(cb) {
+  const name = 'f1pub_' + Date.now();
+  let done = false;
+  window[name] = (resp) => { done = true; delete window[name]; try { document.getElementById(name).remove(); } catch(e) {} cb(resp && resp.data ? resp.data : null); };
+  const sc = document.createElement('script');
+  sc.id = name;
+  sc.src = SHEETS_URL + '?action=publicado&callback=' + name + '&_=' + Date.now();
+  sc.onerror = () => { if (!done) { done = true; delete window[name]; cb(null); } };
+  document.head.appendChild(sc);
+  setTimeout(() => { if (!done) { done = true; delete window[name]; cb(null); } }, 15000);
+}
+
+function openResults() {
+  goTo('s-tabla');
+  document.getElementById('pub-upd').textContent = '⏳ Cargando...';
+  document.getElementById('pane-rk').innerHTML = '';
+  loadPublished(data => {
+    PUB = data;
+    if (!data) {
+      document.getElementById('pub-upd').textContent = '';
+      document.getElementById('pane-rk').innerHTML = '<div class="note">Aún no hay resultados publicados, o no hay conexión. Intenta de nuevo más tarde.</div>';
+      return;
+    }
+    document.getElementById('pub-upd').textContent = 'Actualizado: ' +
+      new Date(data.updated).toLocaleString('es-CL', { timeZone:'America/Santiago', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+    renderRanking();
+    fillRaceSelect();
+  });
+}
+
+function showTab(t) {
+  document.getElementById('tab-rk').classList.toggle('active', t === 'rk');
+  document.getElementById('tab-rc').classList.toggle('active', t === 'rc');
+  document.getElementById('pane-rk').style.display = t === 'rk' ? '' : 'none';
+  document.getElementById('pane-rc').style.display = t === 'rc' ? '' : 'none';
+}
+
+function renderRanking() {
+  const scored = PUB.races.filter(r => r.result);
+  const last = scored[scored.length - 1];
+  const rk = PUB.ranking || [];
+  let html = scored.length ? '' : '<div class="note">Todavía no hay carreras con resultado.</div>';
+  html += rk.map(row => {
+    const pos = rk.findIndex(r => r.total === row.total) + 1;
+    const lastPts = last && row.per[last.id] !== undefined ? `${last.flag} última: ${row.per[last.id]} pts` : '';
+    return `<div class="rk-row">
+      <div class="rk-pos ${pos<=3?'p'+pos:''}">${pos}</div>
+      <div class="rk-name">${esc(row.n)}<div class="rk-last">${lastPts}</div></div>
+      <div class="rk-total">${row.total}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('pane-rk').innerHTML = html;
+}
+
+function fillRaceSelect() {
+  const sel = document.getElementById('rc-select');
+  const races = PUB.races;
+  sel.innerHTML = races.map(r => `<option value="${r.id}">${r.flag} R${r.num} · ${esc(r.name)} (${esc(r.date)})${r.result ? ' ✓' : ''}</option>`).join('');
+  // Por defecto: la carrera abierta más próxima con apuestas, o la última cerrada
+  const now = new Date();
+  const upcoming = races.find(r => !r.closed && r.apostaron && r.apostaron.length);
+  const lastClosed = [...races].reverse().find(r => r.closed);
+  sel.value = (upcoming || lastClosed || races[0]).id;
+  renderRace();
+}
+
+function renderRace() {
+  const r = PUB.races.find(x => x.id === document.getElementById('rc-select').value);
+  if (!r) return;
+  let html = '';
+  if (r.result) {
+    html += `<div class="off-box">
+      <div class="result-card"><div class="label">🏁 Resultado pilotos</div>${r.result.d.map((d,i)=>`<div class="l">${i+1}° ${esc(d)}</div>`).join('')}</div>
+      <div class="result-card"><div class="label">🏭 Resultado equipos</div>${r.result.t.map((t,i)=>`<div class="l">${i+1}° ${esc(t)}</div>`).join('')}</div>
+    </div>`;
+  }
+  if (!r.closed) {
+    const ya = r.apostaron || [];
+    const faltan = PARTICIPANTES.filter(n => !ya.includes(n));
+    const cierre = r.qualiStart ? new Date(r.qualiStart).toLocaleString('es-CL', { timeZone:'America/Santiago', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }) : '';
+    html += `<div class="note">🔒 Las apuestas de cada uno se muestran cuando cierran las apuestas, al inicio de la Clasificación${cierre ? ' (' + cierre + ')' : ''}.</div>`;
+    html += `<div class="note"><strong style="color:var(--green)">✓ Ya apostaron (${ya.length}):</strong><br>${ya.map(esc).join(', ') || '—'}</div>`;
+    html += `<div class="note"><strong style="color:var(--orange)">⏳ Faltan (${faltan.length}):</strong><br>${faltan.map(esc).join(', ') || '—'}</div>`;
+    document.getElementById('rc-body').innerHTML = html;
+    return;
+  }
+  const bets = (r.bets || []).slice().sort((a, b) => (b.pts ?? -1) - (a.pts ?? -1) || a.n.localeCompare(b.n, 'es'));
+  if (!bets.length) { html += '<div class="note">No hay apuestas publicadas para esta carrera.</div>'; }
+  if (!r.result && bets.length) html += '<div class="note">Resultado oficial pendiente. Toca un nombre para ver su apuesta.</div>';
+  html += bets.map(b => {
+    const pen = b.pen ? `<span class="pn">−${b.pen} pen.</span>` : '';
+    const dl = b.d.map((d,i)=>`<div class="${r.result && r.result.d[i]===d ? 'hit' : ''}">${i+1}° ${esc(d)}</div>`).join('');
+    const tl = b.t.map((t,i)=>`<div class="${r.result && r.result.t[i]===t ? 'hit' : ''}">${i+1}° ${esc(t)}</div>`).join('');
+    return `<div class="bet-row" onclick="this.classList.toggle('open')">
+      <div class="bet-head"><span class="nm">${esc(b.n)}</span>${pen}<span class="pt">${b.pts != null ? b.pts : ''}</span></div>
+      <div class="bet-body"><div><div class="label" style="color:var(--muted);font-size:11px;margin-bottom:4px">PILOTOS</div>${dl}</div>
+        <div><div class="label" style="color:var(--muted);font-size:11px;margin-bottom:4px">EQUIPOS</div>${tl}</div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('rc-body').innerHTML = html;
+}
+
 
 function jsonpCheck(participante, raceId, raceNum, callback) {
   const callbackName = 'f1cb_' + Date.now();
