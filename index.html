@@ -327,7 +327,7 @@ const PARTICIPANTES = [
   "Lucas Buono-Core","Michel Durand","Carlos Werner","Edward Kaplun",
   "Enrique Feliu","Juan Pablo Cerda","Rodrigo Wall","Enzo Yacometti",
   "Ricardo de la Maza","Andres Belfus","Nicolás Duarte","Pablo Musa",
-  "Jaime Cordero","Roberto Belloni","Daniel Vega","Rodrigo Valiente",
+  "Jaime Cordero","Roberto Belloni","Daniel Vega",
   "Rodrigo Val","Diego Barria","Alejandro Sepúlveda","Victor Hirmas",
   "Diego Campaña","Alexis Belletti","Marcos Persia","Daniel Rivera",
   "Carlos Ruiz","Fernando Ramirez"
@@ -697,8 +697,11 @@ function renderRanking() {
   const last = scored[scored.length - 1];
   const rk = PUB.ranking || [];
   let html = scored.length ? '' : '<div class="note">Todavía no hay carreras con resultado.</div>';
+  if (PUB.dropActive) html += '<div class="note" style="color:var(--orange)">✂️ ' + (PUB.dropCount === 1
+    ? 'Tras la penúltima carrera se descarta la peor fecha de cada socio. Al final de la temporada se descartan las 2 peores.'
+    : 'Ranking final: se descartan las 2 peores fechas de cada socio.') + '</div>';
   html += rk.map(row => {
-    const pos = rk.findIndex(r => r.total === row.total) + 1;
+    const pos = row.pos || (rk.findIndex(r => r.total === row.total) + 1);
     const lastPts = last && row.per[last.id] !== undefined ? `${last.flag} última: ${row.per[last.id]} pts` : '';
     return `<div class="rk-row">
       <div class="rk-pos ${pos<=3?'p'+pos:''}">${pos}</div>
