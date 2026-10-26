@@ -658,7 +658,7 @@ function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'
 function loadPublished(cb) {
   const name = 'f1pub_' + Date.now();
   let done = false;
-  window[name] = (resp) => { done = true; delete window[name]; try { document.getElementById(name).remove(); } catch(e) {} cb(resp && resp.data ? resp.data : null); };
+  window[name] = (resp) => { done = true; delete window[name]; try { document.getElementById(name).remove(); } catch(e) {} if (resp && resp.data) resp.data._vivos = resp.vivos || null; cb(resp && resp.data ? resp.data : null); };
   const sc = document.createElement('script');
   sc.id = name;
   sc.src = SHEETS_URL + '?action=publicado&callback=' + name + '&_=' + Date.now();
@@ -718,7 +718,7 @@ function fillRaceSelect() {
   sel.innerHTML = races.map(r => `<option value="${r.id}">${r.flag} R${r.num} · ${esc(r.name)} (${esc(r.date)})${r.result ? ' ✓' : ''}</option>`).join('');
   // Por defecto: la carrera abierta más próxima con apuestas, o la última cerrada
   const now = new Date();
-  const upcoming = races.find(r => !r.closed && r.apostaron && r.apostaron.length);
+  const upcoming = races.find(r => !r.closed && !(r.qualiStart && now >= new Date(r.qualiStart)));
   const lastClosed = [...races].reverse().find(r => r.closed);
   sel.value = (upcoming || lastClosed || races[0]).id;
   renderRace();
@@ -734,11 +734,15 @@ function renderRace() {
       <div class="result-card"><div class="label">🏭 Resultado equipos</div>${r.result.t.map((t,i)=>`<div class="l">${i+1}° ${esc(t)}</div>`).join('')}</div>
     </div>`;
   }
+  const closedNow = r.closed || (r.qualiStart && new Date() >= new Date(r.qualiStart));
   if (!r.closed) {
-    const ya = r.apostaron || [];
+    const vivos = PUB._vivos && PUB._vivos[r.num];
+    const ya = (vivos || r.apostaron || []).slice().sort((a, b) => a.localeCompare(b, 'es'));
     const faltan = PARTICIPANTES.filter(n => !ya.includes(n));
     const cierre = r.qualiStart ? new Date(r.qualiStart).toLocaleString('es-CL', { timeZone:'America/Santiago', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }) : '';
-    html += `<div class="note">🔒 Las apuestas de cada uno se muestran cuando cierran las apuestas, al inicio de la Clasificación${cierre ? ' (' + cierre + ')' : ''}.</div>`;
+    html += closedNow
+      ? `<div class="note">🔒 Apuestas cerradas. Las apuestas de cada uno se mostrarán aquí apenas el administrador las publique.</div>`
+      : `<div class="note">🔒 Las apuestas de cada uno se muestran cuando cierran las apuestas, al inicio de la Clasificación${cierre ? ' (' + cierre + ')' : ''}.</div>`;
     html += `<div class="note"><strong style="color:var(--green)">✓ Ya apostaron (${ya.length}):</strong><br>${ya.map(esc).join(', ') || '—'}</div>`;
     html += `<div class="note"><strong style="color:var(--orange)">⏳ Faltan (${faltan.length}):</strong><br>${faltan.map(esc).join(', ') || '—'}</div>`;
     document.getElementById('rc-body').innerHTML = html;
