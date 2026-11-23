@@ -193,6 +193,26 @@
   .bet-row.open .bet-body { display:grid; }
   .hit { color:var(--green); font-weight:700; }
   .note { padding:12px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:13px; color:#bbb; margin-bottom:12px; line-height:1.6; }
+  /* Ranking: vista lista / detalle por carrera */
+  .rk-views { display:flex; gap:0; margin-bottom:12px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .rk-views button { flex:1; padding:8px; background:var(--card); border:0; color:var(--muted); font-family:'Barlow',sans-serif; font-size:13px; font-weight:500; cursor:pointer; }
+  .rk-views button.on { background:#2a2a2a; color:var(--text); }
+  .rk-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:8px; background:var(--card); }
+  .rk-table { border-collapse:separate; border-spacing:0; font-size:13px; white-space:nowrap; }
+  .rk-table th, .rk-table td { padding:7px 6px; text-align:center; border-bottom:1px solid var(--border); }
+  .rk-table thead th { font-size:11px; color:var(--muted); font-weight:500; line-height:1.3; background:var(--dark); position:sticky; top:0; }
+  .rk-table tbody tr:last-child td { border-bottom:0; }
+  .rk-table .c-pos, .rk-table .c-nm { position:sticky; background:var(--card); z-index:1; }
+  .rk-table thead .c-pos, .rk-table thead .c-nm { background:var(--dark); z-index:2; }
+  .rk-table .c-pos { left:0; width:30px; min-width:30px; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:15px; }
+  .rk-table .c-nm { left:30px; text-align:left; max-width:120px; overflow:hidden; text-overflow:ellipsis; border-right:1px solid var(--border); font-weight:500; }
+  .rk-table .c-tot { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:17px; color:var(--gold); border-left:1px solid var(--border); padding:7px 10px; }
+  .rk-table .c-br { color:var(--muted); font-size:12px; }
+  .rk-table td.nb { color:#555; }
+  .rk-table td.dr { color:var(--orange); background:#f9731618; text-decoration:line-through; }
+  .rk-table td.dr.nb { text-decoration:none; }
+  .rk-table td.ng { color:#f87171; }
+  .rk-legend { font-size:11px; color:var(--muted); margin-top:8px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -700,16 +720,74 @@ function renderRanking() {
   if (PUB.dropActive) html += '<div class="note" style="color:var(--orange)">✂️ ' + (PUB.dropCount === 1
     ? 'Tras la penúltima carrera se descarta la peor fecha de cada socio. Al final de la temporada se descartan las 2 peores.'
     : 'Ranking final: se descartan las 2 peores fechas de cada socio.') + '</div>';
-  html += rk.map(row => {
-    const pos = row.pos || (rk.findIndex(r => r.total === row.total) + 1);
-    const lastPts = last && row.per[last.id] !== undefined ? `${last.flag} última: ${row.per[last.id]} pts` : '';
-    return `<div class="rk-row">
-      <div class="rk-pos ${pos<=3?'p'+pos:''}">${pos}</div>
-      <div class="rk-name">${esc(row.n)}<div class="rk-last">${lastPts}</div></div>
-      <div class="rk-total">${row.total}</div>
+  if (scored.length && rk.length) {
+    html += `<div class="rk-views">
+      <button class="${RK_VIEW==='lista'?'on':''}" onclick="setRkView('lista')">Posiciones</button>
+      <button class="${RK_VIEW==='detalle'?'on':''}" onclick="setRkView('detalle')">Detalle por carrera</button>
     </div>`;
-  }).join('');
+  }
+  if (RK_VIEW === 'detalle' && scored.length && rk.length) {
+    html += renderRankingTable(scored, rk);
+  } else {
+    html += rk.map(row => {
+      const pos = row.pos || (rk.findIndex(r => r.total === row.total) + 1);
+      const lastPts = last && row.per[last.id] !== undefined ? `${last.flag} última: ${row.per[last.id]} pts` : '';
+      return `<div class="rk-row">
+        <div class="rk-pos ${pos<=3?'p'+pos:''}">${pos}</div>
+        <div class="rk-name">${esc(row.n)}<div class="rk-last">${lastPts}</div></div>
+        <div class="rk-total">${row.total}</div>
+      </div>`;
+    }).join('');
+  }
   document.getElementById('pane-rk').innerHTML = html;
+}
+
+// ── Ranking completo: una columna por carrera ──
+let RK_VIEW = 'lista';
+try { if (localStorage.getItem('f1_rkview') === 'detalle') RK_VIEW = 'detalle'; } catch (e) {}
+function setRkView(v) {
+  RK_VIEW = v;
+  try { localStorage.setItem('f1_rkview', v); } catch (e) {}
+  renderRanking();
+}
+
+// Fechas descartadas: las publica el admin; si no vienen, se calculan con la misma regla
+function droppedFor(row, scored) {
+  if (Array.isArray(row.drop)) return row.drop;
+  const n = PUB.dropCount || 0;
+  if (!PUB.dropActive || !n) return [];
+  return scored.map(r => ({ id: r.id, v: row.per[r.id] !== undefined ? row.per[r.id] : 0 }))
+    .sort((a, b) => a.v - b.v).slice(0, n).map(x => x.id);
+}
+
+function renderRankingTable(scored, rk) {
+  const head = scored.map(r => `<th title="${esc(r.name)}">${r.flag}<br>R${r.num}</th>`).join('');
+  const anyDrop = PUB.dropActive;
+  const body = rk.map(row => {
+    const pos = row.pos || (rk.findIndex(r => r.total === row.total) + 1);
+    const drop = droppedFor(row, scored);
+    const cells = scored.map(r => {
+      const has = row.per[r.id] !== undefined;
+      const v = has ? row.per[r.id] : 0;
+      const cls = (drop.includes(r.id) ? 'dr ' : '') + (!has ? 'nb' : v < 0 ? 'ng' : '');
+      const tip = drop.includes(r.id) ? 'Fecha descartada' : !has ? 'Sin apuesta' : '';
+      return `<td class="${cls}"${tip ? ` title="${tip}"` : ''}>${has ? v : '–'}</td>`;
+    }).join('');
+    const gross = row.gross !== undefined ? row.gross
+      : scored.reduce((a, r) => a + (row.per[r.id] !== undefined ? row.per[r.id] : 0), 0);
+    return `<tr>
+      <td class="c-pos" style="color:${pos===1?'var(--gold)':pos===2?'#c0c0c0':pos===3?'#cd7f32':'var(--text)'}">${pos}</td>
+      <td class="c-nm">${esc(row.n)}</td>${cells}
+      ${anyDrop ? `<td class="c-br">${gross}</td>` : ''}
+      <td class="c-tot">${row.total}</td></tr>`;
+  }).join('');
+  return `<div class="rk-wrap"><table class="rk-table">
+    <thead><tr><th class="c-pos">#</th><th class="c-nm">Socio</th>${head}
+      ${anyDrop ? '<th>Bruto</th>' : ''}<th>Total</th></tr></thead>
+    <tbody>${body}</tbody></table></div>
+    <div class="rk-legend">Desliza hacia el lado para ver todas las carreras. – = no apostó (cuenta 0)` +
+    (anyDrop ? ' · <span style="color:var(--orange)">naranjo</span> = fecha descartada · Bruto = suma antes del descarte' : '') +
+    '</div>';
 }
 
 function fillRaceSelect() {
